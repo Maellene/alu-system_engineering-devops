@@ -15,4 +15,35 @@ sudo cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
 # sudo truncate -s 0 /etc/haproxy/haproxy.cfg
 
 # Check if the configuration for frontend and backend exists
-if ! grep -q "frontend tresorshingiro-frontend" /etc/haproxy/hap
+if ! grep -q "frontend maellene-frontend" /etc/haproxy/haproxy.cfg; then
+    # Add frontend and backend configuration
+    server_config="frontend maellene-frontend
+        bind *:80
+        mode http
+        default_backend maellene-backend
+
+    backend maellene-backend
+        balance roundrobin
+        server 6877-web-01 3.83.246.154:80 check
+        server 6877-web-02 54.172.186.196:80 check"
+    
+    # Append the configuration to haproxy.cfg
+    echo "$server_config" | sudo tee -a /etc/haproxy/haproxy.cfg
+else
+    echo "Frontend and Backend configuration already exists in haproxy.cfg."
+fi
+
+# Enable HAProxy to start on boot
+echo "ENABLED=1" | sudo tee -a /etc/default/haproxy
+
+# Restart HAProxy service
+sudo service haproxy restart
+
+# Check if HAProxy service is running
+sudo systemctl status haproxy
+
+# Output to verify that the names web-01 and web-02 are used in the backend configuration
+echo "Checking HAProxy configuration..."
+curl -Is http://localhost | grep X-Served-By
+
+echo "HAProxy installation and configuration complete. Traffic is now load balanced between web-01 and web-02."i
